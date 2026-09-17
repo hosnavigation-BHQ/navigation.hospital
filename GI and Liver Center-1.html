@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บอกทาง - ศูนย์โรคทางเดินอาหารและตับ</title>
+<style>
+:root{
+  --success-bg:#eaf3de; --success-text:#27500a;
+  --text-muted:#888780; --surface-0:#f1efe8; --surface-1:#f7f6f2;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --success-bg:#173404; --success-text:#c0dd97;
+    --text-muted:#888780; --surface-0:#1a1a18; --surface-1:#242422;
+  }
+}
+*{box-sizing:border-box}
+body{ margin:0; font-family:-apple-system,'Segoe UI',Roboto,'Sarabun',sans-serif; background:rgba(255,255,255,1); color:#1a1a1a; min-height:100vh; display:flex; flex-direction:column;  }
+.dest-name{ font-size:15px; font-weight:600; text-align:center; padding:20px 16px 0; color:#1a1a1a; }
+.body{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; text-align:center; background:rgba(255,255,255,1); }
+.tri{ display:inline-block; }
+.icon{ font-size:129px; line-height:1; color:#ff0000; font-weight:900; transform:translate(0px, 2px); }
+.icon.arrived{ background:#d93636; color:#ffffff; width:96px; height:96px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:46px; transform:none; }
+.instr{ font-size:26px; font-weight:500; margin:0; color:#1a1a1a; }
+.sub{ font-size:14px; color:#1a1a1a; opacity:0.75; margin:0; }
+.btn-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:0 20px 24px; }
+.btn{ margin:0; padding:16px; border-radius:12px; border:none; background:#0c447c; color:#ffffff; font-size:16px; font-weight:600; cursor:pointer; appearance:none; -webkit-appearance:none; box-shadow:none; opacity:1; width:100%; max-width:320px; }
+.btn:disabled{ opacity:1; -webkit-text-fill-color:currentColor; }
+.btn.done{ background:#3b6d11; color:#fff; }
+.btn.back{ background:#f7f6f2; color:#0c447c; font-size:22px; padding:9px 16px; width:auto; min-width:120px; }
+.dots{ display:flex; justify-content:center; gap:6px; padding-bottom:20px; }
+.dot{ width:6px; height:6px; border-radius:50%; background:var(--text-muted); opacity:0.4; }
+.dot.on{ background:#ff0000; opacity:1; width:16px; border-radius:3px; }
+body.has-bg .dest-name{ background:rgba(255,255,255,1); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); padding-top:20px; padding-bottom:12px; }
+body.has-bg .body{ margin:14px; border-radius:20px; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+body.has-bg .btn-wrap{ background:rgba(255,255,255,1); margin:0 14px 14px; padding:14px; border-radius:16px; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+</style>
+</head>
+<body>
+<p class="dest-name">ไปยัง: ศูนย์โรคทางเดินอาหารและตับ</p>
+<div class="body">
+  <div class="icon" id="icon"></div>
+  <p class="instr" id="instr"></p>
+  <p class="sub" id="sub"></p>
+</div>
+<div class="btn-wrap">
+  <button class="btn" id="btn" onclick="next()"></button>
+  <button class="btn back" id="backbtn" onclick="prev()">‹ ย้อนกลับ</button>
+</div>
+<div class="dots" id="dots"></div>
+<script>
+const steps = [{"icon":"up","instr":"เดินตรงไป 60 เมตร","sub":"เดินผ่านโถงกลางห้องจ่ายยา","arrived":false},{"icon":"left","instr":"เลี้ยวซ้าย","sub":"มองหาป้ายลิฟต์ BC","arrived":false},{"icon":"elevator","instr":"กดลิฟต์ไปยังชั้น 7","sub":"","arrived":false},{"icon":"check","instr":"ถึงแล้ว!","sub":"ศูนย์โรคทางเดินอาหารและตับอยู่ตรงนี้","arrived":true}];
+const ICON_DEFS = {
+  'up':0, 'down':180, 'left':270, 'right':90
+};
+const EMOJI_ICONS = { 'elevator':'🛗' };
+const ESCALATOR_PERSON = '<circle cx="12" cy="9" r="2.4" fill="currentColor"/><rect x="9.4" y="11.8" width="5.2" height="6.5" rx="2.6" fill="currentColor"/>';
+const ESCALATOR_SVGS = {
+  'escalator-up': '<svg viewBox="0 0 32 32" fill="none" style="width:1em;height:1em;vertical-align:middle">'+ESCALATOR_PERSON+'<path d="M3 27 C3 20 8 17 12 15 C16 13 18 11 21 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21 8 L16 9 M21 8 L20 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  'escalator-down': '<svg viewBox="0 0 32 32" fill="none" style="width:1em;height:1em;vertical-align:middle">'+ESCALATOR_PERSON+'<path d="M3 5 C3 12 8 15 12 17 C16 19 18 21 21 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21 24 L16 23 M21 24 L20 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+function iconHtml(id){
+  if(ESCALATOR_SVGS[id]) return '<span style="display:inline-flex">'+ESCALATOR_SVGS[id]+'</span>';
+  if(EMOJI_ICONS[id]) return '<span style="font-size:0.75em">'+EMOJI_ICONS[id]+'</span>';
+  if(id in ICON_DEFS) return '<span class="tri" style="transform:rotate('+ICON_DEFS[id]+'deg)">▲</span>';
+  return '✓';
+}
+let step = 0;
+function render(){
+  const s = steps[step];
+  const icon = document.getElementById('icon');
+  icon.innerHTML = s.arrived ? '✓' : iconHtml(s.icon);
+  icon.classList.toggle('arrived', !!s.arrived);
+  document.getElementById('instr').textContent = s.instr;
+  document.getElementById('sub').textContent = s.sub;
+  const btn = document.getElementById('btn');
+  if(s.arrived){
+    btn.textContent = '✓ ถึงจุดหมายแล้ว';
+    btn.classList.add('done');
+    btn.disabled = true;
+  } else {
+    btn.textContent = 'ถึงจุดนี้แล้ว ไปต่อ';
+    btn.classList.remove('done');
+    btn.disabled = false;
+  }
+  document.getElementById('backbtn').style.visibility = step===0 ? 'hidden' : 'visible';
+  document.getElementById('dots').innerHTML = steps.map((_,i)=>'<div class="dot'+(i===step?' on':'')+'"></div>').join('');
+}
+function next(){ if(step<steps.length-1){ step++; render(); } }
+function prev(){ if(step>0){ step--; render(); } }
+render();
+</script>
+</body>
+</html>
